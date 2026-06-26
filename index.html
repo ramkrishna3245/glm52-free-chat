@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>GLM-5.2 Free Chat</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a14; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; }
+    .header { padding: 16px 24px; border-bottom: 1px solid #2a2a45; background: #111122; display: flex; align-items: center; gap: 12px; }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .header span { color: #6366f1; font-size: 12px; background: #1a1a2e; padding: 4px 10px; border-radius: 12px; border: 1px solid #2a2a45; }
+    .chat { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .msg { max-width: 800px; width: 100%; margin: 0 auto; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .msg-label { font-size: 12px; color: #5a6178; margin-bottom: 4px; font-weight: 600; }
+    .msg-content { padding: 14px 18px; border-radius: 10px; font-size: 14px; line-height: 1.7; border: 1px solid #2a2a45; }
+    .user .msg-content { background: #2a2a4a; }
+    .ai .msg-content { background: #151528; }
+    .ai .msg-label { color: #818cf8; }
+    .input-area { padding: 16px 24px; border-top: 1px solid #2a2a45; background: #111122; }
+    .input-row { display: flex; gap: 8px; max-width: 800px; margin: 0 auto; }
+    #input { flex: 1; padding: 12px 16px; background: #1a1a2e; border: 1px solid #2a2a45; border-radius: 10px; color: #e2e8f0; font-size: 14px; font-family: inherit; resize: none; max-height: 150px; line-height: 1.5; }
+    #input:focus { outline: none; border-color: #6366f1; }
+    #send { padding: 12px 24px; background: #6366f1; border: none; border-radius: 10px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+    #send:hover { background: #818cf8; }
+    #send:disabled { opacity: 0.5; cursor: not-allowed; }
+    .thinking { display: none; align-items: center; gap: 8px; padding: 8px 16px; font-size: 13px; color: #5a6178; max-width: 800px; margin: 0 auto; }
+    .dot { width: 6px; height: 6px; background: #6366f1; border-radius: 50%; animation: pulse 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    .footer-text { text-align: center; font-size: 11px; color: #5a6178; margin-top: 8px; }
+    .model-badge { display: inline-block; padding: 2px 8px; background: #1a1a2e; border-radius: 8px; font-size: 11px; color: #5a6178; margin: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🧠 GLM-5.2</h1>
+    <span>via Puter.js · Free</span>
+    <span style="margin-left:auto;font-size:12px;color:#5a6178">744B MoE · 1M ctx</span>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="msg ai">
+      <div class="msg-label">GLM-5.2</div>
+      <div class="msg-content">
+        I'm GLM-5.2 running through Puter.js — completely free, no API key needed.<br>
+        Ask me anything.
+        <div style="margin-top:8px">
+          <span class="model-badge">💬 Coding</span>
+          <span class="model-badge">🧮 Math</span>
+          <span class="model-badge">🔍 Reasoning</span>
+          <span class="model-badge">📝 Creative</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="thinking" id="thinking">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span id="thinkText">GLM-5.2 is thinking...</span>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <textarea id="input" rows="1" placeholder="Ask GLM-5.2 anything..." onkeydown="if(event.key=='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
+      <button id="send" onclick="send()">Send</button>
+    </div>
+    <div class="footer-text">Powered by Puter.js — free, keyless AI</div>
+  </div>
+
+  <script>
+    let isRunning = false;
+
+    function addMsg(role, text) {
+      const chat = document.getElementById('chat');
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.innerHTML = `<div class="msg-label">${role === 'user' ? 'You' : 'GLM-5.2'}</div><div class="msg-content">${text.replace(/\n/g, '<br>')}</div>`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function send() {
+      if (isRunning) return;
+      const input = document.getElementById('input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMsg('user', text);
+      input.value = '';
+      document.getElementById('thinking').style.display = 'flex';
+      document.getElementById('send').disabled = true;
+      isRunning = true;
+
+      try {
+        const response = await puter.ai.chat(text, { model: 'z-ai/glm-5.2' });
+        addMsg('ai', response?.message?.content || response?.toString() || '(no response)');
+      } catch (err) {
+        addMsg('ai', '❌ Error: ' + err.message);
+      }
+
+      document.getElementById('thinking').style.display = 'none';
+      document.getElementById('send').disabled = false;
+      isRunning = false;
+    }
+  </script>
+</body>
+</html>
